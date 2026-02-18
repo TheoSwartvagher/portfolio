@@ -1,143 +1,93 @@
-
-import React, { useMemo, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Image, Text, TouchableOpacity } from "react-native";
-import { FontAwesome5, Feather } from "@expo/vector-icons";
-import Answer from "./Answer";
-
+import { FontAwesome5 } from "@expo/vector-icons";
+import { likeComment, unlikeComment } from "../../whatsup_functions/likeComment";
 import { useVisiteProfileContext } from "../../../VisiteProfile/Contexts/VisiteProfileContext";
 import { useLoginContext } from "../../../../../auth/login/login_contexts/LoginContext";
-import { likeComment, unlikeComment } from "../../whatsup_functions/likeComment";
 import { shortformattedTimeAgo } from "../../../../../generic_functions/getTimeSinceDate";
-import { handleDeleteCommentAction } from "../../whatsup_functions/commentPost";
 import { showToast } from "../../Whatsup";
-import { Overlay } from "react-native-elements";
-import { getDateToSentance } from "../../../../../generic_functions/getDateToSentance";
 import { verifIfCommentExist } from "../../whatsup_functions/verifIfExist";
 
 interface Props {
-  updateCommentTab: any;
-  commentTab: any[];
-  setCommentTab: any;
+  comment: any;
   navigation: any;
   toggleIsOverlayOpen: () => void;
   setAnswerToCommentId: (id: number) => void;
   setAnswerToPseudo: (pseudo: string) => void;
   setAnswerToUsrId: (id: number) => void;
-
-  comment_id: number;
-  comment_text: string;
-  comment_date: string;
-  usr_id: number;
-  comment_usr_id: number;
-  usr_alias: string;
-  usr_profilepicture: string;
-  usr_pseudo: string;
-  usr_certification: boolean;
-  likes: number[];
+  refresh: () => void;
+  depth?: number; // 👈 important pour indentation
 }
 
-export default function Comment(props: Props) {
-  const {
-    updateCommentTab,
-    commentTab,
-    navigation,
-    toggleIsOverlayOpen,
-    setAnswerToCommentId,
-    setAnswerToPseudo,
-    setAnswerToUsrId,
-    comment_id,
-    comment_text,
-    comment_date,
-    usr_id,
-    comment_usr_id,
-    usr_alias,
-    usr_profilepicture,
-    usr_certification,
-    likes,
-  } = props;
-
+function CommentComponent({
+  comment,
+  navigation,
+  toggleIsOverlayOpen,
+  setAnswerToCommentId,
+  setAnswerToPseudo,
+  setAnswerToUsrId,
+  refresh,
+  depth = 0,
+}: Props) {
   const { navigate } = navigation;
   const { setVisiteProfileUsrID } = useVisiteProfileContext();
   const { profileGeneralInfo } = useLoginContext();
 
-  const [likeTab, setLikeTab] = useState<number[]>(likes);
-  const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [likeTab, setLikeTab] = useState<number[]>(comment.likes);
+
+  useEffect(() => {
+    setLikeTab(comment.likes);
+  }, [comment.likes]);
 
   const hasLiked = likeTab.includes(profileGeneralInfo.usr_ID);
 
-  /**
-   * Answers dérivés dynamiquement
-   */
-  const answers = useMemo(() => {
-    return commentTab
-      .filter((c) => c.answerto_commentid === comment_id)
-      .map((answer) => (
-        <Answer
-          key={answer.comment_id}
-          navigation={navigation}
-          toggleIsOverlayOpen={toggleIsOverlayOpen}
-          commentTab={commentTab}
-          updateCommentTab={updateCommentTab}
-          setAnswerToPseudo={setAnswerToPseudo}
-          setAnswerToCommentId={setAnswerToCommentId}
-          setAnswerToUsrId={setAnswerToUsrId}
-          {...answer}
-        />
-      ));
-  }, [commentTab, comment_id]);
-
-  /**
-   * Like optimiste propre (sans mutation)
-   */
   const handleLike = async () => {
-    if (!(await verifIfCommentExist(comment_id))) {
+    if (!(await verifIfCommentExist(comment.comment_id))) {
       showToast("Ce commentaire n'existe plus !");
       return;
     }
 
     if (hasLiked) {
-      await unlikeComment(comment_id, profileGeneralInfo.usr_ID);
+      await unlikeComment(comment.comment_id, profileGeneralInfo.usr_ID);
       setLikeTab((prev) =>
         prev.filter((id) => id !== profileGeneralInfo.usr_ID)
       );
     } else {
-      await likeComment(comment_id, profileGeneralInfo.usr_ID);
+      await likeComment(comment.comment_id, profileGeneralInfo.usr_ID);
       setLikeTab((prev) => [...prev, profileGeneralInfo.usr_ID]);
     }
   };
 
   return (
     <>
-      <View style={{ marginLeft: 10, marginBottom: 15 }}>
+      <View
+        style={{
+          marginLeft: depth * 15, // 👈 indentation dynamique
+          marginBottom: 15,
+        }}
+      >
         <View style={{ flexDirection: "row", marginBottom: 8 }}>
           <TouchableOpacity
             onPress={() => {
-              if (profileGeneralInfo.usr_ID !== comment_usr_id) {
+              if (profileGeneralInfo.usr_ID !== comment.comment_usr_id) {
                 toggleIsOverlayOpen();
-                setVisiteProfileUsrID(comment_usr_id);
+                setVisiteProfileUsrID(comment.comment_usr_id);
                 navigate("VisiteProfile");
               }
             }}
           >
             <Image
-              style={{ height: 45, width: 45, borderRadius: 22 }}
-              source={{ uri: usr_profilepicture }}
+              style={{ height: 40, width: 40, borderRadius: 20 }}
+              source={{ uri: comment.usr_profilepicture }}
             />
           </TouchableOpacity>
 
           <View style={{ flex: 1, marginLeft: 10 }}>
             <Text style={{ fontWeight: "600" }}>
-              @{usr_alias}
-              {usr_certification && (
-                <FontAwesome5
-                  name="certificate"
-                  size={12}
-                  color="#00ff7f"
-                />
-              )}
+              @{comment.usr_alias}
             </Text>
 
-            <Text>{comment_text}</Text>
+            <Text>{comment.comment_text}</Text>
 
             <View
               style={{
@@ -147,15 +97,15 @@ export default function Comment(props: Props) {
               }}
             >
               <Text style={{ fontSize: 10, color: "#999" }}>
-                {shortformattedTimeAgo(comment_date)}
+                {shortformattedTimeAgo(comment.comment_date)}
               </Text>
 
               <TouchableOpacity
-                onPress={() =>
-                  setAnswerToCommentId(comment_id) ||
-                  setAnswerToPseudo(usr_alias) ||
-                  setAnswerToUsrId(usr_id)
-                }
+                onPress={() => {
+                  setAnswerToCommentId(comment.comment_id);
+                  setAnswerToPseudo(comment.usr_alias);
+                  setAnswerToUsrId(comment.usr_id);
+                }}
               >
                 <Text style={{ fontSize: 10, color: "#999" }}>
                   Répondre
@@ -178,7 +128,23 @@ export default function Comment(props: Props) {
         </View>
       </View>
 
-      {answers}
+      {/* 🔥 RÉCURSIVITÉ PURE */}
+      {comment.children &&
+        comment.children.map((child: any) => (
+          <CommentComponent
+            key={child.comment_id}
+            comment={child}
+            navigation={navigation}
+            toggleIsOverlayOpen={toggleIsOverlayOpen}
+            setAnswerToCommentId={setAnswerToCommentId}
+            setAnswerToPseudo={setAnswerToPseudo}
+            setAnswerToUsrId={setAnswerToUsrId}
+            refresh={refresh}
+            depth={depth + 1}
+          />
+        ))}
     </>
   );
 }
+
+export default React.memo(CommentComponent);
