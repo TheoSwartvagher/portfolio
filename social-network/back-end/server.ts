@@ -25,6 +25,7 @@ import morgan from "morgan";
 import authRoutes from "./routes/auth.routes";
 import postRoutes from "./routes/post.routes";
 import commentRoutes from "./routes/comment.routes";
+import authMiddleware from "./middlewares/auth.middleware";
 
 /**
  * ============================================================================
@@ -60,8 +61,8 @@ app.use(express.json());
  */
 
 app.use("/api/auth", authRoutes);
-app.use("/api/posts", postRoutes);
-app.use("/api/comments", commentRoutes);
+app.use("/api/posts", authMiddleware, postRoutes);
+app.use("/api/comments", authMiddleware, commentRoutes);
 
 /**
  * ============================================================================
