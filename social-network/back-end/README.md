@@ -69,9 +69,6 @@ Gestion de l’authentification, validation, gestion globale des erreurs.
 **models/**
 Définitions des entités et typages liés à la base de données.
 
-**utils/**
-Fonctions réutilisables (génération de token, hash, helpers).
-
 **config/**
 Configuration environnement, base de données, variables sensibles.
 
