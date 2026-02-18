@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -16,12 +16,20 @@ import { addComment } from "../whatsup_functions/addComment";
 import { useLoginContext } from "../../../../auth/login/login_contexts/LoginContext";
 import { showToast } from "../Whatsup";
 
+export interface CommentNode {
+  comment_id: number;
+  answerto_commentid: number | null;
+  likes: number[];
+  children?: CommentNode[];
+  [key: string]: any;
+}
+
 interface Props {
   visible: boolean;
   onClose: () => void;
   postId: number;
   postOwnerId: number;
-  navigation: any; // typable si tu as RootStack
+  navigation: any;
 }
 
 export default function CommentsOverlay({
@@ -33,7 +41,7 @@ export default function CommentsOverlay({
 }: Props) {
   const { profileGeneralInfo } = useLoginContext();
 
-  const [comments, setComments] = useState<any[]>([]);
+  const [comments, setComments] = useState<CommentNode[]>([]);
   const [loading, setLoading] = useState(false);
 
   const [answerToCommentId, setAnswerToCommentId] = useState<number | null>(null);
@@ -56,9 +64,6 @@ export default function CommentsOverlay({
     }
   }, [postOwnerId, postId]);
 
-  /**
-   * Chargement à l'ouverture
-   */
   useEffect(() => {
     if (visible) {
       loadComments();
@@ -66,16 +71,34 @@ export default function CommentsOverlay({
   }, [visible, loadComments]);
 
   /**
-   * Callback unique pour répondre
+   * Construction arbre hiérarchique (O(n))
    */
-  const handleReply = useCallback(
-    (commentId: number, pseudo: string, usrId: number) => {
-      setAnswerToCommentId(commentId);
-      setAnswerToPseudo(pseudo);
-      setAnswerToUsrId(usrId);
-    },
-    []
-  );
+  const commentsTree = useMemo(() => {
+    const map = new Map<number, CommentNode>();
+    const roots: CommentNode[] = [];
+
+    // Initialisation
+    comments.forEach((comment) => {
+      map.set(comment.comment_id, {
+        ...comment,
+        children: [],
+      });
+    });
+
+    // Construction hiérarchie
+    map.forEach((comment) => {
+      if (comment.answerto_commentid === null) {
+        roots.push(comment);
+      } else {
+        const parent = map.get(comment.answerto_commentid);
+        if (parent) {
+          parent.children!.push(comment);
+        }
+      }
+    });
+
+    return roots;
+  }, [comments]);
 
   /**
    * Ajout commentaire
@@ -144,13 +167,16 @@ export default function CommentsOverlay({
 
           {/* LISTE */}
           <ScrollView style={{ flex: 1 }}>
-            {comments.map((comment) => (
+            {commentsTree.map((comment) => (
               <Comment
                 key={comment.comment_id}
                 comment={comment}
-                onReply={handleReply}
-                onRefresh={loadComments}
                 navigation={navigation}
+                toggleIsOverlayOpen={onClose}
+                setAnswerToCommentId={setAnswerToCommentId}
+                setAnswerToPseudo={setAnswerToPseudo}
+                setAnswerToUsrId={setAnswerToUsrId}
+                refresh={loadComments}
               />
             ))}
 
@@ -180,7 +206,7 @@ export default function CommentsOverlay({
                   : "Ajouter un commentaire..."
               }
               value={
-                answerToCommentId
+                answerToCommentId && answerToPseudo
                   ? `@${answerToPseudo} ${newComment}`
                   : newComment
               }
