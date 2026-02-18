@@ -27,7 +27,7 @@ interface Props {
  * - Permet la réponse
  * - S’auto-rend pour ses enfants (récursivité)
  */
-function CommentComponent({
+function Comment({
   comment,
   navigation,
   toggleIsOverlayOpen,
@@ -179,7 +179,7 @@ function CommentComponent({
       {/* Chaque commentaire peut rendre ses enfants */}
       {comment.children &&
         comment.children.map((child: any) => (
-          <CommentComponent
+          <Comment
             key={child.comment_id}
             comment={child}
             navigation={navigation}
