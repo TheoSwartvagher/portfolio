@@ -9,16 +9,24 @@ import { showToast } from "../../Whatsup";
 import { verifIfCommentExist } from "../../whatsup_functions/verifIfExist";
 
 interface Props {
-  comment: any;
+  comment: any; // Objet commentaire (incluant children)
   navigation: any;
   toggleIsOverlayOpen: () => void;
   setAnswerToCommentId: (id: number) => void;
   setAnswerToPseudo: (pseudo: string) => void;
   setAnswerToUsrId: (id: number) => void;
   refresh: () => void;
-  depth?: number; // 👈 important pour indentation
+  depth?: number; // 👈 niveau d’imbrication pour indentation
 }
 
+/**
+ * Composant récursif représentant un commentaire.
+ * 
+ * Il :
+ * - Gère son état local de likes (optimistic UI)
+ * - Permet la réponse
+ * - S’auto-rend pour ses enfants (récursivité)
+ */
 function CommentComponent({
   comment,
   navigation,
@@ -27,21 +35,44 @@ function CommentComponent({
   setAnswerToPseudo,
   setAnswerToUsrId,
   refresh,
-  depth = 0,
+  depth = 0, // Par défaut racine
 }: Props) {
+
   const { navigate } = navigation;
   const { setVisiteProfileUsrID } = useVisiteProfileContext();
   const { profileGeneralInfo } = useLoginContext();
 
+  /**
+   * 🎯 State local des likes
+   * 
+   * On initialise avec les likes reçus en props.
+   * Cela permet une gestion optimiste sans recharger
+   * tout l’arbre immédiatement.
+   */
   const [likeTab, setLikeTab] = useState<number[]>(comment.likes);
 
+  /**
+   * Synchronisation si les likes du commentaire
+   * changent après refresh.
+   */
   useEffect(() => {
     setLikeTab(comment.likes);
   }, [comment.likes]);
 
+  /**
+   * Valeur dérivée : l'utilisateur a-t-il liké ?
+   */
   const hasLiked = likeTab.includes(profileGeneralInfo.usr_ID);
 
+  /**
+   * ❤️ Gestion optimiste du like
+   * 
+   * - Vérifie existence commentaire
+   * - Appel API
+   * - Mise à jour locale sans mutation
+   */
   const handleLike = async () => {
+
     if (!(await verifIfCommentExist(comment.comment_id))) {
       showToast("Ce commentaire n'existe plus !");
       return;
@@ -49,28 +80,34 @@ function CommentComponent({
 
     if (hasLiked) {
       await unlikeComment(comment.comment_id, profileGeneralInfo.usr_ID);
+
       setLikeTab((prev) =>
         prev.filter((id) => id !== profileGeneralInfo.usr_ID)
       );
+
     } else {
       await likeComment(comment.comment_id, profileGeneralInfo.usr_ID);
+
       setLikeTab((prev) => [...prev, profileGeneralInfo.usr_ID]);
     }
   };
 
   return (
     <>
+      {/* Bloc principal du commentaire */}
       <View
         style={{
-          marginLeft: depth * 15, // 👈 indentation dynamique
+          marginLeft: depth * 15, // 👈 indentation proportionnelle au niveau
           marginBottom: 15,
         }}
       >
         <View style={{ flexDirection: "row", marginBottom: 8 }}>
+
+          {/* Avatar + navigation profil */}
           <TouchableOpacity
             onPress={() => {
               if (profileGeneralInfo.usr_ID !== comment.comment_usr_id) {
-                toggleIsOverlayOpen();
+                toggleIsOverlayOpen(); // fermeture overlay
                 setVisiteProfileUsrID(comment.comment_usr_id);
                 navigate("VisiteProfile");
               }
@@ -82,13 +119,18 @@ function CommentComponent({
             />
           </TouchableOpacity>
 
+          {/* Contenu commentaire */}
           <View style={{ flex: 1, marginLeft: 10 }}>
+
+            {/* Alias */}
             <Text style={{ fontWeight: "600" }}>
               @{comment.usr_alias}
             </Text>
 
+            {/* Texte */}
             <Text>{comment.comment_text}</Text>
 
+            {/* Footer */}
             <View
               style={{
                 flexDirection: "row",
@@ -96,10 +138,13 @@ function CommentComponent({
                 marginTop: 5,
               }}
             >
+
+              {/* Date relative */}
               <Text style={{ fontSize: 10, color: "#999" }}>
                 {shortformattedTimeAgo(comment.comment_date)}
               </Text>
 
+              {/* Répondre */}
               <TouchableOpacity
                 onPress={() => {
                   setAnswerToCommentId(comment.comment_id);
@@ -112,6 +157,7 @@ function CommentComponent({
                 </Text>
               </TouchableOpacity>
 
+              {/* Like */}
               <TouchableOpacity onPress={handleLike}>
                 <Text style={{ fontSize: 11 }}>
                   {likeTab.length}{" "}
@@ -123,12 +169,14 @@ function CommentComponent({
                   />
                 </Text>
               </TouchableOpacity>
+
             </View>
           </View>
         </View>
       </View>
 
-      {/* 🔥 RÉCURSIVITÉ PURE */}
+      {/* 🔥 RÉCURSIVITÉ */}
+      {/* Chaque commentaire peut rendre ses enfants */}
       {comment.children &&
         comment.children.map((child: any) => (
           <CommentComponent
@@ -140,11 +188,15 @@ function CommentComponent({
             setAnswerToPseudo={setAnswerToPseudo}
             setAnswerToUsrId={setAnswerToUsrId}
             refresh={refresh}
-            depth={depth + 1}
+            depth={depth + 1} // 👈 incrémentation niveau
           />
         ))}
     </>
   );
 }
 
+/**
+ * React.memo permet d’éviter les re-renders inutiles
+ * si les props n’ont pas changé.
+ */
 export default React.memo(CommentComponent);
