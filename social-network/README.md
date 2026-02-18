@@ -10,6 +10,8 @@ L’ambition était de réunir une communauté autour de projets communs et de c
 
 ## Vision Produit
 
+- Profils centrés sur les objectifs personnels
+- Mise en avant des projets en cours plutôt que du contenu éphémère
 - Interactions favorisant l’encouragement et le suivi de progression
 - Dynamique communautaire orientée engagement constructif
 
