@@ -22,7 +22,7 @@ import React, {
  * la lisibilité avec des détails d’implémentation réseau.
  *
  * Dans le projet réel, les fonctions login/register appelaient
- * un backend via fetch, avec gestion de tokens.
+ * un backend via Axios, avec gestion de tokens.
  *
  * ============================================================================
  */
