@@ -8,6 +8,7 @@
   "home": {
     "title": "Accueil",
     "welcome": "Bienvenue",
+    "description": "Bienvenue sur la suite Essenciel",
     "emptyState": "Aucun élément pour le moment."
   },
   "item": {
