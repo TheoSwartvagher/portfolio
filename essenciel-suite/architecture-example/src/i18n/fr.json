@@ -1,1 +1,19 @@
-
+{
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "confirm": "Confirmer"
+  },
+  "home": {
+    "title": "Accueil",
+    "welcome": "Bienvenue",
+    "emptyState": "Aucun élément pour le moment."
+  },
+  "item": {
+    "create": "Créer un élément",
+    "edit": "Modifier l'élément",
+    "active": "Actif",
+    "inactive": "Inactif"
+  }
+}
