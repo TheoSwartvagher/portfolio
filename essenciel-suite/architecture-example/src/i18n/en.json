@@ -8,6 +8,7 @@
   "home": {
     "title": "Home",
     "welcome": "Welcome",
+    "description": "Welcome to the Essenciel suite",
     "emptyState": "No items yet."
   },
   "item": {
@@ -17,4 +18,3 @@
     "inactive": "Inactive"
   }
 }
-
